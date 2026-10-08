@@ -4,7 +4,7 @@ const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_6xXSP
 const BLOCK_COUNT = 17;
 const ALLOWED_SCORES = [0, 10, 25];
 const SCORE_LABELS = new Map([[0, '0'], [10, 'Zona'], [25, 'Top']]);
-const REQUEST_TIMEOUT = 20000;
+const REQUEST_TIMEOUT = 60000;
 
 const form = document.getElementById('resultats');
 const fields = document.getElementById('formulari');
@@ -287,7 +287,7 @@ form.addEventListener('submit', async event => {
   } catch (error) {
     console.error('No s’han pogut guardar els resultats:', error);
     statusMessage.textContent = error.name === 'AbortError'
-      ? 'La connexió ha tardat massa. Torna-ho a provar sense canviar les dades.'
+      ? 'No s’ha pogut confirmar el guardat a temps. Comprova els resultats abans de tornar-ho a provar.'
       : error instanceof TypeError
         ? 'No s’ha pogut connectar. Comprova la connexió a Internet i torna-ho a provar.'
         : error.message;

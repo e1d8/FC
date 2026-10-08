@@ -28,6 +28,8 @@ La pestanya `Resultats` conté `id`, `correo`, `nombre`, `genero`, `bloque1`…`
 
 El servidor valida de nou tots els camps, calcula la suma, normalitza el correu a minúscules i usa un bloqueig per a evitar col·lisions entre enviaments simultanis. El full es manté privat. La lectura pública d’Apps Script exclou sempre el correu:
 
+La primera execució després d’un temps d’inactivitat pot tardar uns segons perquè Google ha d’iniciar Apps Script. El formulari i la web de resultats esperen fins a 60 segons abans de cancel·lar la petició.
+
 ```text
 URL_DE_APPS_SCRIPT?action=resultats
 ```
