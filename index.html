@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gaia • Registre</title>
   <link rel="icon" type="image/svg+xml" href="Gaia.svg?v=1">
-  <link rel="stylesheet" href="styles.css?v=2">
-  <script src="script.js?v=3" defer></script>
+  <link rel="stylesheet" href="styles.css?v=4">
+  <script src="script.js?v=5" defer></script>
 </head>
 <body>
   <main>
@@ -14,6 +14,9 @@
       <img class="logo" src="Gaia.svg" alt="Gaia Climb" width="176" height="176">
       <h1>Registre puntuació</h1>
     </header>
+    <aside id="avis-retorn" class="avis-retorn" aria-label="Informació per a actualitzar els resultats" hidden>
+      Els resultats poden tardar un parell de minuts en actualitzar-se. Si vols canviar el nom o qualsevol dada, has de ficar el mateix correu electrònic.
+    </aside>
     <noscript>Cal activar JavaScript per a guardar els resultats.</noscript>
     <form id="resultats" novalidate>
       <fieldset id="formulari">
@@ -23,9 +26,23 @@
           <span>Anònim</span>
         </label>
         <div id="dades-personals">
-          <label for="nombre">Nom</label>
+          <div class="etiqueta-amb-ajuda">
+            <label for="nombre">Nom</label>
+            <button class="boto-ajuda" type="button" aria-label="Informació sobre el nom"
+              aria-expanded="false" aria-controls="ajuda-nom" aria-describedby="ajuda-nom">i</button>
+            <span id="ajuda-nom" class="missatge-ajuda" role="tooltip">
+              Pot ser inventat. Posa el cognom, un emoji o el que siga per a distingir-te dels demés si tens un nom comú.
+            </span>
+          </div>
           <input id="nombre" name="nombre" type="text" autocomplete="name" maxlength="30" required aria-describedby="estat">
-          <label class="label-correu" for="correo">Correu electrònic</label>
+          <div class="etiqueta-amb-ajuda label-correu">
+            <label for="correo">Correu electrònic</label>
+            <button class="boto-ajuda" type="button" aria-label="Informació sobre el correu electrònic"
+              aria-expanded="false" aria-controls="ajuda-correu" aria-describedby="ajuda-correu">i</button>
+            <span id="ajuda-correu" class="missatge-ajuda" role="tooltip">
+              Pot ser inventat, però recordat d'ell per si has de tornar a utilitzar-lo per a canviar el nom o qualsevol dada
+            </span>
+          </div>
           <input id="correo" name="correo" type="email" autocomplete="email" inputmode="email" required aria-describedby="estat">
           <fieldset id="grup-genero" class="genero">
             <legend>Gènere</legend>
@@ -64,7 +81,6 @@
         <dt>Gènere</dt>
         <dd id="resum-genero"></dd>
       </dl>
-      <p id="resum-avis-correu" class="resum-avis" role="status" hidden></p>
       <p class="resum-total"><span>Total</span><strong id="resum-total"></strong></p>
       <section aria-labelledby="resum-titol-blocs">
         <h3 id="resum-titol-blocs">Blocs</h3>

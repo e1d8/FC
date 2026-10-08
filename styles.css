@@ -6,13 +6,20 @@ main { max-width: 520px; margin: 0 auto; padding: 20px 16px 32px; overflow-ancho
 h1 { max-width: 430px; margin: 0 auto; font-size: clamp(1.55rem, 7vw, 2rem); line-height: 1.2; }
 h2 { margin-top: 28px; font-size: 1.15rem; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.avis-retorn { margin: -24px 0 40px; padding: 16px; border: 1px solid #666; font-size: 0.95rem; }
 .control-anonim { display: flex; align-items: center; gap: 10px; min-height: 48px; margin-bottom: 24px; font-weight: 600; cursor: pointer; }
 .control-anonim input { width: 24px; height: 24px; margin: 0; accent-color: #202020; }
 input[type="text"], input[type="email"] { display: block; width: 100%; min-height: 48px; margin-top: 8px; padding: 10px; border: 1px solid #666; border-radius: 0; font: inherit; }
-#dades-personals > label, .genero legend { font-weight: 700; }
-.label-correu { display: block; margin-top: 24px; }
+.etiqueta-amb-ajuda { position: relative; display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.label-correu { margin-top: 24px; }
+.boto-ajuda { display: inline-flex; width: 16px; min-height: 16px; padding: 0; align-items: center; justify-content: center; border: 1px solid #202020; border-radius: 50%; background: #fff; color: #202020; font-size: 0.65rem; line-height: 1; }
+.boto-ajuda:hover,
+.boto-ajuda[aria-expanded="true"] { background: #202020; color: #fff; }
+.missatge-ajuda { position: absolute; top: calc(100% + 8px); left: 0; z-index: 10; display: none; width: min(420px, calc(100vw - 32px)); padding: 12px; border: 1px solid #202020; background: #fff; color: #202020; font-size: 0.9rem; font-weight: 400; line-height: 1.4; }
+.boto-ajuda:hover + .missatge-ajuda,
+.etiqueta-amb-ajuda.ajuda-oberta .missatge-ajuda { display: block; }
 .genero { margin-top: 24px; }
-.genero legend { margin-bottom: 8px; padding: 0; }
+.genero legend { margin-bottom: 8px; padding: 0; font-weight: 700; }
 .camp-obligatori-pendent::after {
   content: " *";
   color: #005fcc;
@@ -43,7 +50,6 @@ button:disabled { background: #555; cursor: default; }
 .resum-panel { border: 1px solid #555; padding: 20px 16px; }
 .resum-identitat { margin: 0; }
 .resum-identitat dd { margin: 4px 0 0; font-size: 1.2rem; font-weight: 600; overflow-wrap: anywhere; }
-.resum-avis { margin: 24px 0 0; padding: 12px; border: 1px solid #666; }
 .resum-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 16px; margin: 24px 0; background: #fff; }
 .resum-total strong { font-size: 1.6rem; }
 #confirmacio h3 { margin: 24px 0 8px; font-size: 1.1rem; }

@@ -4,7 +4,6 @@ const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_6xXSP
 const BLOCK_COUNT = 17;
 const ALLOWED_SCORES = [0, 10, 25];
 const SCORE_LABELS = new Map([[0, '0'], [10, 'Zona'], [25, 'Top']]);
-const REQUEST_TIMEOUT = 60000;
 
 const form = document.getElementById('resultats');
 const fields = document.getElementById('formulari');
@@ -23,7 +22,8 @@ const genderInputs = [
 ];
 const saveButton = document.getElementById('guardar');
 const statusMessage = document.getElementById('estat');
-const emailWarning = document.getElementById('resum-avis-correu');
+const returnNotice = document.getElementById('avis-retorn');
+const helpButtons = [...document.querySelectorAll('.boto-ajuda')];
 
 let sending = false;
 let saved = false;
@@ -31,9 +31,57 @@ let pendingResult = null;
 let anonymousKey = null;
 
 const ANONYMOUS_STORAGE_KEY = 'gaia_anonymous_id';
+const VISIT_STORAGE_KEY = 'gaia_form_visited';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const requiredIndicatorTimers = new WeakMap();
+
+function detectReturnVisit() {
+  try {
+    const previousAnonymousId = localStorage.getItem(ANONYMOUS_STORAGE_KEY);
+    const hasVisited = localStorage.getItem(VISIT_STORAGE_KEY) === '1' ||
+      Boolean(previousAnonymousId && UUID_PATTERN.test(previousAnonymousId));
+    returnNotice.hidden = !hasVisited;
+    localStorage.setItem(VISIT_STORAGE_KEY, '1');
+  } catch (error) {
+    returnNotice.hidden = true;
+    console.warn('No s’ha pogut comprovar si és una visita repetida.', error);
+  }
+}
+
+function setHelpOpen(button, isOpen) {
+  button.closest('.etiqueta-amb-ajuda').classList.toggle('ajuda-oberta', isOpen);
+  button.setAttribute('aria-expanded', String(isOpen));
+}
+
+function closeHelpTips(exceptButton = null) {
+  helpButtons.forEach(button => {
+    if (button !== exceptButton) setHelpOpen(button, false);
+  });
+}
+
+helpButtons.forEach(button => {
+  button.addEventListener('click', event => {
+    event.stopPropagation();
+    const shouldOpen = button.getAttribute('aria-expanded') !== 'true';
+    closeHelpTips(button);
+    setHelpOpen(button, shouldOpen);
+  });
+});
+
+document.addEventListener('click', event => {
+  if (!event.target.closest('.etiqueta-amb-ajuda')) closeHelpTips();
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const openButton = helpButtons.find(button => button.getAttribute('aria-expanded') === 'true');
+  if (!openButton) return;
+  setHelpOpen(openButton, false);
+  openButton.focus();
+});
+
+detectReturnVisit();
 
 function flashRequiredIndicator(label) {
   clearTimeout(requiredIndicatorTimers.get(label));
@@ -132,6 +180,7 @@ emailInput.addEventListener('input', () => emailInput.removeAttribute('aria-inva
 genderInputs.forEach(input => input.addEventListener('change', () => genderGroup.removeAttribute('aria-invalid')));
 anonymousInput.addEventListener('change', () => {
   const isAnonymous = anonymousInput.checked;
+  closeHelpTips();
   identityFields.hidden = isAnonymous;
   nameInput.disabled = isAnonymous;
   emailInput.disabled = isAnonymous;
@@ -142,7 +191,9 @@ anonymousInput.addEventListener('change', () => {
   statusMessage.textContent = '';
 });
 form.addEventListener('keydown', event => {
-  if (event.key === 'Enter' && !event.isComposing) event.preventDefault();
+  if (event.key === 'Enter' && !event.isComposing && !event.target.classList.contains('boto-ajuda')) {
+    event.preventDefault();
+  }
 });
 
 function scrollToTop() {
@@ -214,32 +265,41 @@ function validateIdentity() {
   return true;
 }
 
-async function saveResult(result) {
+function reportBackgroundError(error) {
+  console.error('No s’ha pogut completar l’enviament en segon pla:', error);
+}
+
+function sendResultInBackground(result) {
   if (!GOOGLE_APPS_SCRIPT_URL || !GOOGLE_APPS_SCRIPT_URL.endsWith('/exec')) {
     throw new Error('Cal configurar l’URL de Google Apps Script abans de guardar. Consulta el README.');
   }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-  try {
-    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(result),
-      redirect: 'follow',
-      signal: controller.signal
-    });
+
+  const body = JSON.stringify(result);
+  if ('sendBeacon' in navigator) {
+    const queued = navigator.sendBeacon(
+      GOOGLE_APPS_SCRIPT_URL,
+      new Blob([body], { type: 'text/plain;charset=utf-8' })
+    );
+    if (queued) return;
+  }
+
+  fetch(GOOGLE_APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body,
+    keepalive: true,
+    redirect: 'follow'
+  }).then(response => {
     if (!response.ok) throw new Error(`El servidor ha respost amb l’estat HTTP ${response.status}.`);
-    const answer = await response.json().catch(() => null);
+    return response.json();
+  }).then(answer => {
     if (!answer || answer.ok !== true) {
       throw new Error(answer?.message || 'Google Sheets ha rebutjat les dades enviades.');
     }
-    return answer;
-  } finally {
-    clearTimeout(timeout);
-  }
+  }).catch(reportBackgroundError);
 }
 
-function showConfirmation(result, answer) {
+function showConfirmation(result) {
   document.getElementById('resum-nom').textContent = result.nombre;
   document.getElementById('resum-correu').textContent = result.correo;
   document.getElementById('resum-genero').textContent = result.genero;
@@ -249,21 +309,15 @@ function showConfirmation(result, answer) {
   showScoreSummary(result);
   document.getElementById('resum-total').textContent = `${result.total} punts`;
 
-  emailWarning.hidden = true;
-  emailWarning.textContent = '';
-  if (!isAnonymous && answer.emailSent === false) {
-    emailWarning.textContent = 'Els resultats s’han guardat, però no s’ha pogut enviar el correu de resum.';
-    emailWarning.hidden = false;
-  }
-
   form.hidden = true;
+  returnNotice.hidden = true;
   statusMessage.textContent = '';
   document.getElementById('confirmacio').hidden = false;
   document.getElementById('agraiment').focus({ preventScroll: true });
   scrollToTop();
 }
 
-form.addEventListener('submit', async event => {
+form.addEventListener('submit', event => {
   event.preventDefault();
   if (sending || saved) return;
   statusMessage.textContent = '';
@@ -281,16 +335,12 @@ form.addEventListener('submit', async event => {
     form.setAttribute('aria-busy', 'true');
     saveButton.textContent = 'Guardant…';
 
-    const answer = await saveResult(pendingResult);
+    sendResultInBackground(pendingResult);
     saved = true;
-    showConfirmation(pendingResult, answer);
+    showConfirmation(pendingResult);
   } catch (error) {
-    console.error('No s’han pogut guardar els resultats:', error);
-    statusMessage.textContent = error.name === 'AbortError'
-      ? 'No s’ha pogut confirmar el guardat a temps. Comprova els resultats abans de tornar-ho a provar.'
-      : error instanceof TypeError
-        ? 'No s’ha pogut connectar. Comprova la connexió a Internet i torna-ho a provar.'
-        : error.message;
+    console.error('No s’ha pogut iniciar l’enviament:', error);
+    statusMessage.textContent = error.message;
     saveButton.textContent = 'GUARDAR RESULTATS';
   } finally {
     sending = false;

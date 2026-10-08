@@ -2,7 +2,7 @@
 
 Formulari web en valencià, sense dependències, per a registrar els resultats de 17 blocs. Cada bloc admet `0`, `Zona` (10 punts) o `Top` (25 punts); la puntuació màxima és 425.
 
-Les dades es guarden en un full privat de Google Sheets mitjançant Google Apps Script. Un correu identificat actualitza la seua fila anterior. El mode anònim conserva una identitat aleatòria en `localStorage` i no envia correu.
+Les dades es guarden en un full privat de Google Sheets mitjançant Google Apps Script. Un correu identificat actualitza la seua fila anterior. El mode anònim conserva una identitat aleatòria en `localStorage` i no envia correu. El navegador també guarda una marca local per a mostrar l’avís d’actualització a partir de la segona visita.
 
 ## 1. Crear el full i configurar Apps Script
 
@@ -28,7 +28,7 @@ La pestanya `Resultats` conté `id`, `correo`, `nombre`, `genero`, `bloque1`…`
 
 El servidor valida de nou tots els camps, calcula la suma, normalitza el correu a minúscules i usa un bloqueig per a evitar col·lisions entre enviaments simultanis. El full es manté privat. La lectura pública d’Apps Script exclou sempre el correu:
 
-La primera execució després d’un temps d’inactivitat pot tardar uns segons perquè Google ha d’iniciar Apps Script. El formulari i la web de resultats esperen fins a 60 segons abans de cancel·lar la petició.
+La primera execució després d’un temps d’inactivitat pot tardar uns segons perquè Google ha d’iniciar Apps Script. El formulari envia les dades en segon pla i mostra immediatament el resum quan el navegador accepta l’enviament; no espera la resposta final de Sheets ni del correu. La web de resultats espera fins a 60 segons abans de cancel·lar la lectura.
 
 ```text
 URL_DE_APPS_SCRIPT?action=resultats
@@ -59,7 +59,7 @@ Qualsevol persona que conega un correu registrat pot reemplaçar el seu resultat
 
 Apps Script envia el resum amb `MailApp` després de guardar. El remitent visible és `FormulariCompeticióGaia` i el missatge inclou nom, gènere, els 17 blocs i el total. No s’envien correus per a participacions anònimes.
 
-Si s’esgota la quota o Gmail falla, la puntuació continua guardada i el formulari mostra un avís. Un compte personal de Gmail admet habitualment fins a 100 destinataris diaris; Google pot modificar esta quota.
+Si s’esgota la quota o Gmail falla, la puntuació continua guardada. Com que el formulari no espera la resposta del servidor, l’error queda registrat en Apps Script però no retarda la pantalla d’agraïment. Un compte personal de Gmail admet habitualment fins a 100 destinataris diaris; Google pot modificar esta quota.
 
 ## 4. Afegir i eliminar dades de prova
 
@@ -87,7 +87,9 @@ Comprovacions principals:
 - Nom, correu i gènere són obligatoris fora del mode anònim; el nom admet 30 caràcters.
 - Dos enviaments amb el mateix correu actualitzen una sola fila.
 - El mateix navegador reutilitza la identitat anònima després de recarregar.
-- Un error de xarxa conserva les dades i permet reintentar.
-- Un error de correu no elimina el resultat guardat.
+- A partir de la segona visita en el mateix navegador apareix l’avís sobre el retard d’actualització i la reutilització del correu.
+- Les ajudes de nom i correu s’obrin amb el punter, amb una pulsació o amb el teclat, i es tanquen en prémer fora o amb Escape.
+- El resum apareix sense esperar la resposta del servidor; comprova el full durant les proves per a confirmar que la xarxa ha completat l’enviament.
+- Un error de correu no impedix ni anul·la el guardat del resultat.
 - La consulta pública no conté la propietat `correo`.
 - El formulari funciona amb teclat i des de 320 px sense desplaçament horitzontal.
