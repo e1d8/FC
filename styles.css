@@ -43,6 +43,7 @@ button:disabled { background: #555; cursor: default; }
 .resum-panel { border: 1px solid #555; padding: 20px 16px; }
 .resum-identitat { margin: 0; }
 .resum-identitat dd { margin: 4px 0 0; font-size: 1.2rem; font-weight: 600; overflow-wrap: anywhere; }
+.resum-avis { margin: 24px 0 0; padding: 12px; border: 1px solid #666; }
 .resum-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 16px; margin: 24px 0; background: #fff; }
 .resum-total strong { font-size: 1.6rem; }
 #confirmacio h3 { margin: 24px 0 8px; font-size: 1.1rem; }

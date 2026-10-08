@@ -1,6 +1,10 @@
-// Copia ací la URL del projecte i la clau publicable de Supabase.
-const SUPABASE_URL = 'https://snxkaxlxypmqevfsksul.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_dbfGWZXvN3cVWrYNnIE2tg_D-x-siVb';
+// Copia ací l’URL de la implementació web de Google Apps Script, acabada en /exec.
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby_6xXSPIx5A1duDRSo-9iMPRQKQ3JSD5WjF5tFKZH_J6jxMwpqHGpRvrV-N4zFnCcw/exec';
+
+const BLOCK_COUNT = 17;
+const ALLOWED_SCORES = [0, 10, 25];
+const SCORE_LABELS = new Map([[0, '0'], [10, 'Zona'], [25, 'Top']]);
+const REQUEST_TIMEOUT = 20000;
 
 const form = document.getElementById('resultats');
 const fields = document.getElementById('formulari');
@@ -19,10 +23,13 @@ const genderInputs = [
 ];
 const saveButton = document.getElementById('guardar');
 const statusMessage = document.getElementById('estat');
+const emailWarning = document.getElementById('resum-avis-correu');
+
 let sending = false;
 let saved = false;
 let pendingResult = null;
 let anonymousKey = null;
+
 const ANONYMOUS_STORAGE_KEY = 'gaia_anonymous_id';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,7 +38,6 @@ const requiredIndicatorTimers = new WeakMap();
 function flashRequiredIndicator(label) {
   clearTimeout(requiredIndicatorTimers.get(label));
   label.classList.remove('camp-obligatori-pendent');
-  // Força el reinici de l’animació quan es torna a prémer el botó.
   void label.offsetWidth;
   label.classList.add('camp-obligatori-pendent');
   const timer = setTimeout(() => {
@@ -62,55 +68,28 @@ function getAnonymousKey() {
   return anonymousKey;
 }
 
-function storageError(response, error) {
-  // No registrem el nom, les puntuacions ni les claus del participant.
-  console.error('Error de Supabase:', {
-    status: response.status, code: error.code, message: error.message,
-    details: error.details, hint: error.hint
-  });
-  const reference = ` (HTTP ${response.status}${error.code ? `, ${error.code}` : ''})`;
-  if (error.code === '42501') {
-    return new Error('Supabase no permet guardar: cal revisar el permís d’execució de la funció guardar_resultado.' + reference);
-  }
-  if (error.code === '23514') {
-    return new Error('La taula ha rebutjat el nom, les puntuacions o el total. Cal revisar les restriccions de resultados.' + reference);
-  }
-  if (error.code === '23502') {
-    return new Error('La taula exigix un camp que no s’ha enviat. Cal revisar la configuració de resultados.' + reference);
-  }
-  if (error.code === 'PGRST202') {
-    return new Error('No s’ha trobat la funció de guardat. Executa migracion-genero.sql en Supabase.' + reference);
-  }
-  if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01' || error.code === '42703') {
-    return new Error('La base de dades no coincidix amb la configuració del formulari.' + reference);
-  }
-  if (response.status === 401 || response.status === 403) {
-    return new Error('Supabase ha rebutjat l’accés. Cal revisar la clau publicable i els permisos de la taula.' + reference);
-  }
-  return new Error('No s’han pogut guardar els resultats. Torna-ho a provar. Si continua, avisa l’organització.' + reference);
-}
-
-function createScores(containerId, prefix, label, count, scores) {
-  const container = document.getElementById(containerId);
-  for (let i = 1; i <= count; i++) {
+function createScores() {
+  const container = document.getElementById('blocs');
+  for (let i = 1; i <= BLOCK_COUNT; i += 1) {
     const group = document.createElement('fieldset');
     group.className = 'puntuacio';
     const legend = document.createElement('legend');
-    legend.textContent = `${label} ${i}`;
+    legend.textContent = `Bloc ${i}`;
     group.append(legend);
+
     const options = document.createElement('div');
     options.className = 'opcions';
-    for (const score of scores) {
+    for (const score of ALLOWED_SCORES) {
       const option = document.createElement('label');
       option.className = 'opcio';
       const radio = document.createElement('input');
       radio.type = 'radio';
-      radio.name = `${prefix}${i}`;
+      radio.name = `bloque${i}`;
       radio.value = String(score);
       radio.checked = score === 0;
-      radio.setAttribute('aria-label', `${score} punts`);
+      radio.setAttribute('aria-label', score === 0 ? '0 punts' : `${SCORE_LABELS.get(score)}, ${score} punts`);
       const text = document.createElement('span');
-      text.textContent = String(score);
+      text.textContent = SCORE_LABELS.get(score);
       option.append(radio, text);
       options.append(option);
     }
@@ -119,8 +98,7 @@ function createScores(containerId, prefix, label, count, scores) {
   }
 }
 
-createScores('blocs', 'bloque', 'Bloc', 10, [0, 5, 15]);
-createScores('vies', 'via', 'Via', 2, [0, 20, 50]);
+createScores();
 
 function readResult() {
   const data = new FormData(form);
@@ -131,17 +109,16 @@ function readResult() {
     correo: isAnonymous ? `${getAnonymousKey()}@anonim.invalid` : emailInput.value.trim().toLowerCase(),
     genero: isAnonymous ? 'Altre' : selectedGender?.value || ''
   };
+
   let total = 0;
-  for (const [prefix, count, allowed] of [['bloque', 10, [0, 5, 15]], ['via', 2, [0, 20, 50]]]) {
-    for (let i = 1; i <= count; i++) {
-      const raw = data.get(`${prefix}${i}`);
-      const score = Number(raw);
-      if (raw === null || !allowed.includes(score)) {
-        throw new Error('Selecciona una puntuació vàlida en cada bloc i via.');
-      }
-      result[`${prefix}${i}`] = score;
-      total += score;
+  for (let i = 1; i <= BLOCK_COUNT; i += 1) {
+    const raw = data.get(`bloque${i}`);
+    const score = Number(raw);
+    if (raw === null || !ALLOWED_SCORES.includes(score)) {
+      throw new Error('Selecciona una puntuació vàlida en cada bloc.');
     }
+    result[`bloque${i}`] = score;
+    total += score;
   }
   result.total = total;
   return result;
@@ -164,10 +141,8 @@ anonymousInput.addEventListener('change', () => {
   genderGroup.removeAttribute('aria-invalid');
   statusMessage.textContent = '';
 });
-form.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter' && !event.isComposing) {
-    event.preventDefault();
-  }
+form.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.isComposing) event.preventDefault();
 });
 
 function scrollToTop() {
@@ -178,115 +153,139 @@ function scrollToTop() {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }
   resetPosition();
-  // Repetix després que el navegador aplique l’altura de la pantalla de resum.
   requestAnimationFrame(() => {
     resetPosition();
     requestAnimationFrame(resetPosition);
   });
 }
 
-function showScoreSummary(containerId, label, prefix, count, result) {
-  const container = document.getElementById(containerId);
+function scoreSummary(score) {
+  if (score === 10) return 'Zona · 10 punts';
+  if (score === 25) return 'Top · 25 punts';
+  return '0 punts';
+}
+
+function showScoreSummary(result) {
+  const container = document.getElementById('resum-blocs');
   container.replaceChildren();
-  for (let i = 1; i <= count; i++) {
+  for (let i = 1; i <= BLOCK_COUNT; i += 1) {
     const row = document.createElement('div');
     const title = document.createElement('dt');
-    title.textContent = `${label} ${i}`;
+    title.textContent = `Bloc ${i}`;
     const score = document.createElement('dd');
-    score.textContent = `${result[`${prefix}${i}`]} punts`;
+    score.textContent = scoreSummary(result[`bloque${i}`]);
     row.append(title, score);
     container.append(row);
   }
 }
 
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  if (sending || saved) return;
-  statusMessage.textContent = '';
-  if (!anonymousInput.checked && !nameInput.value.trim()) {
+function validateIdentity() {
+  if (anonymousInput.checked) return true;
+  if (!nameInput.value.trim()) {
     nameInput.setAttribute('aria-invalid', 'true');
     flashRequiredIndicator(nameLabel);
     statusMessage.textContent = 'Introduïx el nom de l’escalador.';
     nameInput.focus();
-    return;
+    return false;
   }
-  if (!anonymousInput.checked && nameInput.value.trim().length > 30) {
+  if (nameInput.value.trim().length > 30) {
     nameInput.setAttribute('aria-invalid', 'true');
     flashRequiredIndicator(nameLabel);
     statusMessage.textContent = 'El nom no pot tindre més de 30 caràcters.';
     nameInput.focus();
-    return;
+    return false;
   }
-  if (!anonymousInput.checked) emailInput.value = emailInput.value.trim().toLowerCase();
-  if (!anonymousInput.checked && (!emailInput.value || !emailInput.validity.valid || !EMAIL_PATTERN.test(emailInput.value))) {
+
+  emailInput.value = emailInput.value.trim().toLowerCase();
+  if (!emailInput.value || !emailInput.validity.valid || !EMAIL_PATTERN.test(emailInput.value)) {
     emailInput.setAttribute('aria-invalid', 'true');
     flashRequiredIndicator(emailLabel);
     statusMessage.textContent = 'Introduïx un correu electrònic vàlid.';
     emailInput.focus();
-    return;
+    return false;
   }
-  if (!anonymousInput.checked && !genderInputs.some(input => input.checked)) {
+  if (!genderInputs.some(input => input.checked)) {
     genderGroup.setAttribute('aria-invalid', 'true');
     flashRequiredIndicator(genderLegend);
     statusMessage.textContent = 'Selecciona una opció de gènere.';
     genderInputs[0].focus();
-    return;
+    return false;
+  }
+  return true;
+}
+
+async function saveResult(result) {
+  if (!GOOGLE_APPS_SCRIPT_URL || !GOOGLE_APPS_SCRIPT_URL.endsWith('/exec')) {
+    throw new Error('Cal configurar l’URL de Google Apps Script abans de guardar. Consulta el README.');
+  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  try {
+    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(result),
+      redirect: 'follow',
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`El servidor ha respost amb l’estat HTTP ${response.status}.`);
+    const answer = await response.json().catch(() => null);
+    if (!answer || answer.ok !== true) {
+      throw new Error(answer?.message || 'Google Sheets ha rebutjat les dades enviades.');
+    }
+    return answer;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function showConfirmation(result, answer) {
+  document.getElementById('resum-nom').textContent = result.nombre;
+  document.getElementById('resum-correu').textContent = result.correo;
+  document.getElementById('resum-genero').textContent = result.genero;
+  const isAnonymous = result.correo.endsWith('@anonim.invalid');
+  document.getElementById('resum-correu-etiqueta').hidden = isAnonymous;
+  document.getElementById('resum-correu').hidden = isAnonymous;
+  showScoreSummary(result);
+  document.getElementById('resum-total').textContent = `${result.total} punts`;
+
+  emailWarning.hidden = true;
+  emailWarning.textContent = '';
+  if (!isAnonymous && answer.emailSent === false) {
+    emailWarning.textContent = 'Els resultats s’han guardat, però no s’ha pogut enviar el correu de resum.';
+    emailWarning.hidden = false;
   }
 
+  form.hidden = true;
+  statusMessage.textContent = '';
+  document.getElementById('confirmacio').hidden = false;
+  document.getElementById('agraiment').focus({ preventScroll: true });
+  scrollToTop();
+}
+
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (sending || saved) return;
+  statusMessage.textContent = '';
+  if (!validateIdentity()) return;
+
   try {
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-      throw new Error('Cal configurar la connexió amb Supabase abans de guardar. Consulta el README.');
-    }
     const result = readResult();
     if (!anonymousInput.checked) {
       nameInput.value = result.nombre;
       emailInput.value = result.correo;
     }
     pendingResult = result;
-
     sending = true;
     fields.disabled = true;
     form.setAttribute('aria-busy', 'true');
     saveButton.textContent = 'Guardant…';
-    const endpoint = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/guardar_resultado`;
-    const headers = { apikey: SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' };
-    // També admet la clau anon antiga. La clau publicable nova només necessita apikey.
-    if (SUPABASE_PUBLISHABLE_KEY.startsWith('eyJ')) {
-      headers.Authorization = `Bearer ${SUPABASE_PUBLISHABLE_KEY}`;
-    }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST', headers,
-        body: JSON.stringify(Object.fromEntries(
-          Object.entries(pendingResult).map(([key, value]) => [`p_${key}`, value])
-        )),
-        signal: controller.signal
-      });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw storageError(response, error);
-      }
-    } finally {
-      clearTimeout(timeout);
-    }
+
+    const answer = await saveResult(pendingResult);
     saved = true;
-    document.getElementById('resum-nom').textContent = pendingResult.nombre;
-    document.getElementById('resum-correu').textContent = pendingResult.correo;
-    document.getElementById('resum-genero').textContent = pendingResult.genero;
-    const isAnonymousResult = pendingResult.correo.endsWith('@anonim.invalid');
-    document.getElementById('resum-correu-etiqueta').hidden = isAnonymousResult;
-    document.getElementById('resum-correu').hidden = isAnonymousResult;
-    showScoreSummary('resum-blocs', 'Bloc', 'bloque', 10, pendingResult);
-    showScoreSummary('resum-vies', 'Via', 'via', 2, pendingResult);
-    document.getElementById('resum-total').textContent = `${pendingResult.total} punts`;
-    form.hidden = true;
-    statusMessage.textContent = '';
-    document.getElementById('confirmacio').hidden = false;
-    document.getElementById('agraiment').focus({ preventScroll: true });
-    scrollToTop();
+    showConfirmation(pendingResult, answer);
   } catch (error) {
+    console.error('No s’han pogut guardar els resultats:', error);
     statusMessage.textContent = error.name === 'AbortError'
       ? 'La connexió ha tardat massa. Torna-ho a provar sense canviar les dades.'
       : error instanceof TypeError

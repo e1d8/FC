@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gaia • Registre</title>
   <link rel="icon" type="image/svg+xml" href="Gaia.svg?v=1">
-  <link rel="stylesheet" href="styles.css">
-  <script src="script.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=2">
+  <script src="script.js?v=2" defer></script>
 </head>
 <body>
   <main>
@@ -49,10 +49,6 @@
           <h2 id="titol-blocs">BLOCS</h2>
           <div id="blocs"></div>
         </section>
-        <section aria-labelledby="titol-vies">
-          <h2 id="titol-vies">VIES</h2>
-          <div id="vies"></div>
-        </section>
         <p class="total"><output id="total" aria-live="polite">Total: 0 punts</output></p>
         <button id="guardar" type="submit">GUARDAR RESULTATS</button>
       </fieldset>
@@ -68,14 +64,11 @@
         <dt>Gènere</dt>
         <dd id="resum-genero"></dd>
       </dl>
+      <p id="resum-avis-correu" class="resum-avis" role="status" hidden></p>
       <p class="resum-total"><span>Total</span><strong id="resum-total"></strong></p>
       <section aria-labelledby="resum-titol-blocs">
         <h3 id="resum-titol-blocs">Blocs</h3>
         <dl id="resum-blocs" class="resum-puntuacions"></dl>
-      </section>
-      <section aria-labelledby="resum-titol-vies">
-        <h3 id="resum-titol-vies">Vies</h3>
-        <dl id="resum-vies" class="resum-puntuacions"></dl>
       </section>
       </div>
     </section>
