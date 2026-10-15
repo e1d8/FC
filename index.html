@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gaia • Registre</title>
   <link rel="icon" type="image/svg+xml" href="Gaia.svg?v=1">
-  <link rel="stylesheet" href="styles.css?v=4">
-  <script src="script.js?v=5" defer></script>
+  <link rel="stylesheet" href="styles.css?v=5">
+  <script src="script.js?v=6" defer></script>
 </head>
 <body>
   <main>
@@ -15,12 +15,22 @@
       <h1>Registre puntuació</h1>
     </header>
     <aside id="avis-retorn" class="avis-retorn" aria-label="Informació per a actualitzar els resultats" hidden>
-      Els resultats poden tardar un parell de minuts en actualitzar-se. Si vols canviar el nom o qualsevol dada, has de ficar el mateix correu electrònic.
+      Si vols canviar el nom o qualsevol dada, torna a enviar el formulari amb el mateix número de dorçal.
     </aside>
     <noscript>Cal activar JavaScript per a guardar els resultats.</noscript>
     <form id="resultats" novalidate>
       <fieldset id="formulari">
         <legend class="visually-hidden">Resultats del participant</legend>
+        <div class="etiqueta-amb-ajuda">
+          <label for="dorsal">Número de dorçal</label>
+          <button class="boto-ajuda" type="button" aria-label="Informació sobre el número de dorçal"
+            aria-expanded="false" aria-controls="ajuda-dorsal" aria-describedby="ajuda-dorsal">?</button>
+          <span id="ajuda-dorsal" class="missatge-ajuda" role="tooltip">
+            Introduïx el número del teu dorçal. Per a canviar el nom o qualsevol dada, torna a enviar el formulari amb el mateix número de dorçal.
+          </span>
+        </div>
+        <input id="dorsal" name="dorsal" type="text" autocomplete="off" autocapitalize="characters"
+          spellcheck="false" maxlength="20" pattern="[A-Za-z0-9]{1,20}" required aria-describedby="estat">
         <label class="control-anonim" for="anonimo">
           <input id="anonimo" name="anonimo" type="checkbox">
           <span>Anònim</span>
@@ -35,15 +45,6 @@
             </span>
           </div>
           <input id="nombre" name="nombre" type="text" autocomplete="name" maxlength="30" required aria-describedby="estat">
-          <div class="etiqueta-amb-ajuda label-correu">
-            <label for="correo">Correu electrònic</label>
-            <button class="boto-ajuda" type="button" aria-label="Informació sobre el correu electrònic"
-              aria-expanded="false" aria-controls="ajuda-correu" aria-describedby="ajuda-correu">?</button>
-            <span id="ajuda-correu" class="missatge-ajuda" role="tooltip">
-              Pot ser inventat, però recordat d'ell per si has de tornar a utilitzar-lo per a canviar el nom o qualsevol dada
-            </span>
-          </div>
-          <input id="correo" name="correo" type="email" autocomplete="email" inputmode="email" required aria-describedby="estat">
           <fieldset id="grup-genero" class="genero">
             <legend>Gènere</legend>
             <div class="opcions">
@@ -74,10 +75,12 @@
       <h2 id="agraiment" tabindex="-1">Gràcies per participar</h2>
       <div class="resum-panel">
       <dl class="resum-identitat">
+        <dt>Número de dorçal</dt>
+        <dd id="resum-dorsal"></dd>
+        <dt>Anònim</dt>
+        <dd id="resum-anonim"></dd>
         <dt>Nom</dt>
         <dd id="resum-nom"></dd>
-        <dt id="resum-correu-etiqueta">Correu electrònic</dt>
-        <dd id="resum-correu"></dd>
         <dt>Gènere</dt>
         <dd id="resum-genero"></dd>
       </dl>

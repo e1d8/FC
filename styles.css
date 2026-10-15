@@ -7,11 +7,10 @@ h1 { max-width: 430px; margin: 0 auto; font-size: clamp(1.55rem, 7vw, 2rem); lin
 h2 { margin-top: 28px; font-size: 1.15rem; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .avis-retorn { margin: -24px 0 40px; padding: 16px; border: 1px solid #666; font-size: 0.95rem; }
-.control-anonim { display: flex; align-items: center; gap: 10px; min-height: 48px; margin-bottom: 24px; font-weight: 600; cursor: pointer; }
+.control-anonim { display: flex; align-items: center; gap: 10px; min-height: 48px; margin: 24px 0; font-weight: 600; cursor: pointer; }
 .control-anonim input { width: 24px; height: 24px; margin: 0; accent-color: #202020; }
-input[type="text"], input[type="email"] { display: block; width: 100%; min-height: 48px; margin-top: 8px; padding: 10px; border: 1px solid #666; border-radius: 0; font: inherit; }
+input[type="text"] { display: block; width: 100%; min-height: 48px; margin-top: 8px; padding: 10px; border: 1px solid #666; border-radius: 0; font: inherit; }
 .etiqueta-amb-ajuda { position: relative; display: flex; align-items: center; gap: 8px; font-weight: 700; }
-.label-correu { margin-top: 24px; }
 .boto-ajuda { display: inline-flex; width: 16px; min-height: 16px; padding: 0; align-items: center; justify-content: center; border: 1px solid #202020; border-radius: 50%; background: #fff; color: #202020; font-size: 0.65rem; line-height: 1; }
 .boto-ajuda:hover,
 .boto-ajuda[aria-expanded="true"] { background: #202020; color: #fff; }
@@ -39,7 +38,7 @@ input[type="text"], input[type="email"] { display: block; width: 100%; min-heigh
 .opcio span { display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 8px; border: 1px solid #666; cursor: pointer; }
 .opcio input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .opcio input:checked + span { background: #202020; color: #fff; font-weight: 700; }
-.opcio input:focus-visible + span, input[type="text"]:focus-visible, input[type="email"]:focus-visible, button:focus-visible { outline: 3px solid #005fcc; outline-offset: 3px; }
+.opcio input:focus-visible + span, input[type="text"]:focus-visible, button:focus-visible { outline: 3px solid #005fcc; outline-offset: 3px; }
 fieldset:disabled .opcio span { cursor: default; }
 .total { margin: 40px 0 32px; font-size: 1.4rem; font-weight: 700; }
 button { width: 100%; min-height: 52px; padding: 12px; border: 1px solid #202020; border-radius: 0; background: #202020; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
