@@ -19,7 +19,7 @@ La configuració web és pública. Els permisos i la validació de les dades dep
 
 L’ordre del formulari és **Número de dorçal → Anònim → Nom → Gènere → Blocs → Total → Guardar**.
 
-El dorçal és obligatori en tots els modes. Admet entre 1 i 20 lletres ASCII o números; es lleven els espais exteriors i les lletres es convertixen a majúscules. No admet espais interiors, accents ni guions. `a001` i `A001` identifiquen la mateixa participació; `A001` i `A1` són diferents.
+El dorçal és obligatori en tots els modes. Admet entre 1 i 20 lletres ASCII o números. En escriure o apegar text, les minúscules es convertixen immediatament a majúscules i s’eliminen espais, accents, símbols i guions. `a001` i `A001` identifiquen la mateixa participació; `A001` i `A1` són diferents.
 
 Cada enviament reemplaça completament el document **`resultados/{dorsal}`**. Per exemple, el dorçal `A001` es guarda en `resultados/A001`. Reenviar-lo actualitza el nom, el mode, el gènere, totes les puntuacions i la data; no genera una segona participació. Si hi ha enviaments simultanis per al mateix dorçal, preval l’última escriptura acceptada.
 

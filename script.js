@@ -160,7 +160,40 @@ form.addEventListener('change', () => {
   document.getElementById('total').textContent = `Total: ${readResult().total} punts`;
 });
 nameInput.addEventListener('input', () => nameInput.removeAttribute('aria-invalid'));
-dorsalInput.addEventListener('input', () => dorsalInput.removeAttribute('aria-invalid'));
+function cleanDorsal(value) {
+  return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+}
+
+function normalizeDorsalInput() {
+  const value = dorsalInput.value;
+  const start = dorsalInput.selectionStart;
+  const end = dorsalInput.selectionEnd;
+  const direction = dorsalInput.selectionDirection;
+  const normalized = cleanDorsal(value).slice(0, dorsalInput.maxLength);
+  if (value !== normalized) {
+    dorsalInput.value = normalized;
+    dorsalInput.setSelectionRange(
+      cleanDorsal(value.slice(0, start)).length,
+      cleanDorsal(value.slice(0, end)).length,
+      direction
+    );
+  }
+  dorsalInput.removeAttribute('aria-invalid');
+}
+
+dorsalInput.addEventListener('input', event => {
+  if (!event.isComposing) normalizeDorsalInput();
+});
+dorsalInput.addEventListener('compositionend', normalizeDorsalInput);
+dorsalInput.addEventListener('paste', event => {
+  if (!event.clipboardData) return;
+  event.preventDefault();
+  const available = dorsalInput.maxLength - dorsalInput.value.length +
+    dorsalInput.selectionEnd - dorsalInput.selectionStart;
+  const text = cleanDorsal(event.clipboardData.getData('text')).slice(0, available);
+  dorsalInput.setRangeText(text, dorsalInput.selectionStart, dorsalInput.selectionEnd, 'end');
+  normalizeDorsalInput();
+});
 genderInputs.forEach(input => input.addEventListener('change', () => genderGroup.removeAttribute('aria-invalid')));
 anonymousInput.addEventListener('change', () => {
   const isAnonymous = anonymousInput.checked;
