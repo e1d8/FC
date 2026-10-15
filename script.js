@@ -16,6 +16,7 @@ const ATTEMPT_LABELS = ['0', '1', '2', '3', '4+'];
 const form = document.getElementById('resultats');
 const fields = document.getElementById('formulari');
 const anonymousInput = document.getElementById('anonimo');
+const anonymousStateText = document.getElementById('estat-anonim');
 const identityFields = document.getElementById('dades-personals');
 const dorsalInput = document.getElementById('dorsal');
 const nameInput = document.getElementById('nombre');
@@ -244,6 +245,7 @@ dorsalInput.addEventListener('paste', event => {
 genderInputs.forEach(input => input.addEventListener('change', () => genderGroup.removeAttribute('aria-invalid')));
 anonymousInput.addEventListener('change', () => {
   const isAnonymous = anonymousInput.checked;
+  anonymousStateText.textContent = isAnonymous ? 'Activat' : 'Desactivat';
   closeHelpTips();
   identityFields.hidden = isAnonymous;
   nameInput.disabled = isAnonymous;

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gaia • Registre</title>
   <link rel="icon" type="image/svg+xml" href="Gaia.svg?v=1">
-  <link rel="stylesheet" href="styles.css?v=13">
-  <script src="script.js?v=13" defer></script>
+  <link rel="stylesheet" href="styles.css?v=15">
+  <script src="script.js?v=14" defer></script>
 </head>
 <body>
   <main>
@@ -31,10 +31,20 @@
         </div>
         <input id="dorsal" name="dorsal" type="text" autocomplete="off" autocapitalize="characters"
           spellcheck="false" maxlength="20" pattern="[A-Za-z0-9]{1,20}" required aria-describedby="estat">
-        <label class="control-anonim" for="anonimo">
-          <span>Anònim</span>
-          <input id="anonimo" name="anonimo" type="checkbox" role="switch">
-        </label>
+        <div class="mode-anonim">
+          <div class="etiqueta-amb-ajuda">
+            <label for="anonimo">Anònim</label>
+            <button class="boto-ajuda" type="button" aria-label="Informació sobre el mode anònim"
+              aria-expanded="false" aria-controls="ajuda-anonim" aria-describedby="ajuda-anonim">?</button>
+            <span id="ajuda-anonim" class="missatge-ajuda" role="tooltip">
+              Activa’l per a participar sense indicar el nom ni el gènere.
+            </span>
+          </div>
+          <div class="control-anonim">
+            <input id="anonimo" name="anonimo" type="checkbox" role="switch" aria-describedby="ajuda-anonim">
+            <span id="estat-anonim" class="estat-anonim" aria-hidden="true">Desactivat</span>
+          </div>
+        </div>
         <div id="dades-personals">
           <div class="etiqueta-amb-ajuda">
             <label for="nombre">Nom</label>
