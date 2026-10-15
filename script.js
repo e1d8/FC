@@ -11,7 +11,8 @@ const firebaseConfig = {
 const BLOCK_COUNT = 17;
 const ALLOWED_SCORES = [0, 10, 25];
 const SCORE_LABELS = new Map([[0, '✕'], [10, 'Zona'], [25, 'Top']]);
-const ATTEMPT_LABELS = ['0', '1', '2', '3', '4+'];
+const MAX_ATTEMPTS = 99;
+const attemptControls = new Map();
 
 const form = document.getElementById('resultats');
 const fields = document.getElementById('formulari');
@@ -101,37 +102,94 @@ function flashRequiredIndicator(label) {
   requiredIndicatorTimers.set(label, timer);
 }
 
-function createAttemptsButtons(index) {
+function createAttemptsControl(index) {
   const group = document.createElement('div');
   group.className = 'control-intents';
-  group.setAttribute('role', 'radiogroup');
+  group.setAttribute('role', 'group');
   group.setAttribute('aria-labelledby', `titol-bloc-${index} etiqueta-intents-${index}`);
   group.setAttribute('aria-describedby', 'ajuda-intents');
-  const title = document.createElement('span');
+  const title = document.createElement('label');
   title.id = `etiqueta-intents-${index}`;
+  title.htmlFor = `intentos${index}`;
   title.className = 'etiqueta-intents';
   title.textContent = 'Intents';
-  const options = document.createElement('div');
-  options.className = 'opcions opcions-intents';
+  const counter = document.createElement('div');
+  counter.className = 'comptador-intents';
+  const decrease = document.createElement('button');
+  decrease.type = 'button';
+  decrease.className = 'boto-intents';
+  decrease.textContent = '−';
+  decrease.setAttribute('aria-label', `Reduïx els intents del bloc ${index}`);
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = `intentos${index}`;
+  input.name = `intentos${index}`;
+  input.className = 'camp-intents';
+  input.inputMode = 'numeric';
+  input.maxLength = 2;
+  input.pattern = '[0-9]{1,2}';
+  input.autocomplete = 'off';
+  input.spellcheck = false;
+  input.setAttribute('role', 'spinbutton');
+  input.setAttribute('aria-valuemin', '0');
+  input.setAttribute('aria-valuemax', String(MAX_ATTEMPTS));
+  input.setAttribute('aria-labelledby', `titol-bloc-${index} etiqueta-intents-${index}`);
+  input.setAttribute('aria-describedby', 'ajuda-intents');
+  const increase = document.createElement('button');
+  increase.type = 'button';
+  increase.className = 'boto-intents';
+  increase.textContent = '+';
+  increase.setAttribute('aria-label', `Augmenta els intents del bloc ${index}`);
 
-  ATTEMPT_LABELS.forEach((label, value) => {
-    const option = document.createElement('label');
-    option.className = 'opcio';
-    const radio = document.createElement('input');
-    radio.type = 'radio';
-    radio.name = `intentos${index}`;
-    radio.value = String(value);
-    radio.checked = value === 0;
-    radio.setAttribute('aria-label', value === 4
-      ? '4 o més intents'
-      : `${value} ${value === 1 ? 'intent' : 'intents'}`);
-    const text = document.createElement('span');
-    text.textContent = label;
-    option.append(radio, text);
-    options.append(option);
+  let previousValue = '0';
+  function refresh() {
+    const value = Number(input.value || 0);
+    input.setAttribute('aria-valuenow', String(value));
+    decrease.disabled = value === 0;
+    increase.disabled = value === MAX_ATTEMPTS;
+  }
+  function setValue(value) {
+    input.value = String(value);
+    previousValue = input.value;
+    refresh();
+  }
+  function step(delta) {
+    setValue(Math.max(0, Math.min(MAX_ATTEMPTS, Number(input.value || 0) + delta)));
+  }
+  input.addEventListener('beforeinput', event => {
+    if (!event.data) return;
+    const length = input.value.length - (input.selectionEnd - input.selectionStart) + event.data.length;
+    if (!/^[0-9]+$/.test(event.data) || length > 2) event.preventDefault();
   });
+  input.addEventListener('input', () => {
+    if (!/^[0-9]{0,2}$/.test(input.value)) input.value = previousValue;
+    previousValue = input.value;
+    refresh();
+  });
+  input.addEventListener('paste', event => {
+    if (!event.clipboardData) return;
+    event.preventDefault();
+    const text = event.clipboardData.getData('text');
+    const length = input.value.length - (input.selectionEnd - input.selectionStart) + text.length;
+    if (!/^[0-9]{1,2}$/.test(text) || length > 2) return;
+    input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
+    previousValue = input.value;
+    refresh();
+  });
+  input.addEventListener('focus', () => input.select());
+  input.addEventListener('blur', () => setValue(Number(input.value || 0)));
+  input.addEventListener('keydown', event => {
+    if (event.isComposing || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    event.preventDefault();
+    step(event.key === 'ArrowUp' ? 1 : -1);
+  });
+  decrease.addEventListener('click', () => step(-1));
+  increase.addEventListener('click', () => step(1));
+  setValue(0);
+  attemptControls.set(index, { setValue });
 
-  group.append(title, options);
+  counter.append(decrease, input, increase);
+  group.append(title, counter);
   return group;
 }
 
@@ -165,7 +223,7 @@ function createScores() {
     }
     const row = document.createElement('div');
     row.className = 'fila-bloc';
-    row.append(options, createAttemptsButtons(i));
+    row.append(options, createAttemptsControl(i));
     group.append(row);
     container.append(group);
   }
@@ -194,18 +252,23 @@ function readResult() {
     }
     result[`bloque${i}`] = score;
     const attempts = data.get(`intentos${i}`);
-    if (attempts === null || !/^[0-4]$/.test(attempts)) {
-      throw new Error('Selecciona un nombre d’intents vàlid en cada bloc.');
+    if (attempts === null || !/^[0-9]{0,2}$/.test(attempts)) {
+      throw new Error('Introduïx un nombre d’intents entre 0 i 99 en cada bloc.');
     }
-    result.intentos.push(Number(attempts));
+    const count = Number(attempts || 0);
+    attemptControls.get(i).setValue(count);
+    result.intentos.push(count);
     total += score;
   }
   result.total = total;
   return result;
 }
 
-form.addEventListener('change', () => {
-  document.getElementById('total').textContent = `Total: ${readResult().total} punts`;
+form.addEventListener('change', event => {
+  if (!event.target.matches('input[type="radio"][name^="bloque"]')) return;
+  const total = [...form.querySelectorAll('input[name^="bloque"]:checked')]
+    .reduce((sum, input) => sum + Number(input.value), 0);
+  document.getElementById('total').textContent = `Total: ${total} punts`;
 });
 nameInput.addEventListener('input', () => nameInput.removeAttribute('aria-invalid'));
 function cleanDorsal(value) {
@@ -256,7 +319,7 @@ anonymousInput.addEventListener('change', () => {
   statusMessage.textContent = '';
 });
 form.addEventListener('keydown', event => {
-  if (event.key === 'Enter' && !event.isComposing && !event.target.classList.contains('boto-ajuda')) {
+  if (event.key === 'Enter' && !event.isComposing && !event.target.closest('.boto-ajuda, .boto-intents')) {
     event.preventDefault();
   }
 });
@@ -294,7 +357,7 @@ function showScoreSummary(result) {
     const attempts = document.createElement('span');
     attempts.className = 'resum-intents';
     const value = result.intentos[i - 1];
-    attempts.textContent = `${ATTEMPT_LABELS[value]} ${value === 1 ? 'intent' : 'intents'}`;
+    attempts.textContent = `${value} ${value === 1 ? 'intent' : 'intents'}`;
     score.append(points, attempts);
     row.append(title, score);
     container.append(row);

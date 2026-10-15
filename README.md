@@ -2,7 +2,7 @@
 
 Formulari en valencià amb HTML, CSS i JavaScript, publicable en GitHub Pages. Registra 17 blocs amb `✕` (sense puntuació, 0 punts), `Zona` (10 punts) o `Top` (25 punts), fins a un màxim de **425 punts**. Usa el SDK modular de Firebase **12.4.0**, carregat des del CDN oficial quan cal guardar; no necessita npm ni compilació.
 
-Davall de les tres opcions de puntuació de cada bloc hi ha l’etiqueta **Intents** i una fila de cinc botons: `0`, `1`, `2`, `3` i `4+`. Comença en 0 i només es pot seleccionar una opció per bloc, tocant-la o amb les fletxes del teclat. `4+` significa quatre o més intents. Els intents es guarden i apareixen en el resum, però no modifiquen els punts ni el rànquing.
+Davall de les tres opcions de puntuació de cada bloc hi ha l’etiqueta **Intents** i un comptador **− / número / +**, inicialment en **0**. Cada botó resta o suma un intent, amb límits de **0 a 99**. També pots escriure fins a dos dígits amb el teclat numèric o usar les fletxes amunt i avall. No s’admeten signes, decimals ni més de dos dígits; un camp buit torna a 0 en eixir-ne o guardar. El resum mostra el número exacte. Els intents no modifiquen els punts ni el rànquing.
 
 ## 1. Preparar Firebase
 
@@ -32,7 +32,7 @@ Cada enviament reemplaça completament el document **`resultados/{dorsal}`**. Pe
 | `nombre` | Nom d’1 a 30 caràcters, sense espais exteriors. |
 | `genero` | `Femení`, `Masculí` o `Altre`. |
 | `bloque1`…`bloque17` | Nombres enters: `0`, `10` o `25`. |
-| `intentos` | Llista de 17 enters, en l’ordre dels blocs: el formulari envia de `0` a `4`; el valor `4` representa `4+`. |
+| `intentos` | Llista de 17 enters de `0` a `99`, en l’ordre dels blocs. Cada valor nou representa el nombre exacte d’intents. |
 | `total` | Suma dels 17 blocs, de 0 a 425. |
 | `updated_at` | Timestamp de Firestore generat pel servidor en cada enviament. |
 
@@ -40,7 +40,9 @@ En mode anònim s’oculten nom i gènere i es guarda `anonimo: true`, `nombre: 
 
 Les regles exigixen tots els camps, rebutgen camps addicionals, verifiquen la identitat, cada puntuació, la suma i la data del servidor. **No hi ha login: qualsevol persona que conega un dorçal pot substituir els seus resultats.** Tots els camps dels documents, inclòs el dorçal i l’estat anònim, són de lectura pública.
 
-El camp `intentos` és opcional en les regles per a mantindre compatibles els documents i les versions anteriors del formulari. Si està present, ha de contindre exactament 17 enters vàlids. El formulari actual sempre l’envia amb valors de 0 a 4. Les regles també admeten el valor 5 dels formularis antics, que representava cinc o més intents. No cal migrar documents antics. Si encara no has publicat les regles que admeten `intentos`, publica `firestore.rules`: les regles anteriors rebutgen el camp nou. Si ja les has publicades, el canvi de roda a botons no requerix tornar a publicar-les. La web de resultats continua mostrant les puntuacions; els intents no afecten les seues estadístiques.
+El camp `intentos` és opcional en les regles per a mantindre compatibles els documents i les versions anteriors del formulari. Si està present, ha de contindre exactament 17 enters de 0 a 99. **Torna a publicar el fitxer `firestore.rules` actualitzat abans de publicar el comptador**: les regles antigues no admeten valors superiors a 5. No cal migrar ni esborrar documents antics; els valors guardats com `4+` i `5+` es conserven com a 4 i 5, perquè no es pot recuperar el número exacte.
+
+La web de resultats mostra **Puntuació per bloc** i **Intents per bloc**, amb paginació independent. El segon gràfic suma els valors registrats segons el resultat final (Top, Zona o Sense puntuació), inclosos els nous valors fins a 99. Les dades antigues limitades a `4+` o `5+` aporten només el mínim conegut. Els valors absents o invàlids s’exclouen només d’eixa suma; els intents no modifiquen els punts, el rànquing ni la mitjana de puntuació.
 
 ## 3. Guardat i errors
 
@@ -69,9 +71,15 @@ Després de publicar les regles:
 3. Envia el mateix dorçal amb `Anònim` activat: ha de substituir la identitat anterior per `Anònim` i `Altre` i guardar el booleà `true`.
 4. Prova dorçal buit o invàlid, nom buit o massa llarg i gènere sense seleccionar. En mode anònim, el dorçal buit també ha de rebutjar-se.
 5. Comprova 17 seleccions exclusives, total inicial 0, puntuacions intermèdies i màxim 425.
-   Comprova també les 17 files de cinc botons, `4+`, el resum d’intents i que canviar-los no modifica el total. En Firestore, `intentos[0]` correspon al bloc 1 i `intentos[16]` al bloc 17.
+   Comprova també els 17 comptadors, els límits 0 i 99, l’escriptura, el pegat, els camps buits, les fletxes del teclat i el resum exacte d’intents. Canviar els intents no modifica el total. Intro dins del camp no envia el formulari; en els botons del comptador, només suma o resta. En Firestore, `intentos[0]` correspon al bloc 1 i `intentos[16]` al bloc 17.
 6. Prova sense connexió: no ha d’aparéixer l’agraïment i les dades han de conservar-se. Torna a connectar i reintenta.
 7. Comprova dos clics ràpids, les ajudes amb ratolí i teclat, l’avís de segona visita i el disseny des de 320 px.
+
+Per a activar este canvi, publica en este ordre:
+
+1. Les regles ampliades a 0–99 en **Firestore Database → Regles → Publica**.
+2. La web `ResultatsCompeGaia` actualitzada, que admet intents fins a 99 en el gràfic.
+3. El formulari amb els comptadors nous.
 
 Per a publicar, puja els canvis al repositori i configura **Settings → Pages → Deploy from a branch**, amb la branca corresponent i **/(root)**. Les regles es publiquen separadament en Firebase. La configuració de GitHub Pages no necessita secrets ni cap backend propi.
 
