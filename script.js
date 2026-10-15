@@ -10,7 +10,8 @@ const firebaseConfig = {
 
 const BLOCK_COUNT = 17;
 const ALLOWED_SCORES = [0, 10, 25];
-const SCORE_LABELS = new Map([[0, '0'], [10, 'Zona'], [25, 'Top']]);
+const SCORE_LABELS = new Map([[0, '✕'], [10, 'Zona'], [25, 'Top']]);
+const ATTEMPT_LABELS = ['0', '1', '2', '3', '4+'];
 
 const form = document.getElementById('resultats');
 const fields = document.getElementById('formulari');
@@ -99,13 +100,50 @@ function flashRequiredIndicator(label) {
   requiredIndicatorTimers.set(label, timer);
 }
 
+function createAttemptsButtons(index) {
+  const group = document.createElement('div');
+  group.className = 'control-intents';
+  group.setAttribute('role', 'radiogroup');
+  group.setAttribute('aria-labelledby', `titol-bloc-${index} etiqueta-intents-${index}`);
+  group.setAttribute('aria-describedby', 'ajuda-intents');
+  const title = document.createElement('span');
+  title.id = `etiqueta-intents-${index}`;
+  title.className = 'etiqueta-intents';
+  title.textContent = 'Intents';
+  const options = document.createElement('div');
+  options.className = 'opcions opcions-intents';
+
+  ATTEMPT_LABELS.forEach((label, value) => {
+    const option = document.createElement('label');
+    option.className = 'opcio';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = `intentos${index}`;
+    radio.value = String(value);
+    radio.checked = value === 0;
+    radio.setAttribute('aria-label', value === 4
+      ? '4 o més intents'
+      : `${value} ${value === 1 ? 'intent' : 'intents'}`);
+    const text = document.createElement('span');
+    text.textContent = label;
+    option.append(radio, text);
+    options.append(option);
+  });
+
+  group.append(title, options);
+  return group;
+}
+
 function createScores() {
   const container = document.getElementById('blocs');
   for (let i = 1; i <= BLOCK_COUNT; i += 1) {
     const group = document.createElement('fieldset');
     group.className = 'puntuacio';
     const legend = document.createElement('legend');
-    legend.textContent = `Bloc ${i}`;
+    const title = document.createElement('span');
+    title.id = `titol-bloc-${i}`;
+    title.textContent = `Bloc ${i}`;
+    legend.append(title);
     group.append(legend);
 
     const options = document.createElement('div');
@@ -118,13 +156,16 @@ function createScores() {
       radio.name = `bloque${i}`;
       radio.value = String(score);
       radio.checked = score === 0;
-      radio.setAttribute('aria-label', score === 0 ? '0 punts' : `${SCORE_LABELS.get(score)}, ${score} punts`);
+      radio.setAttribute('aria-label', score === 0 ? 'Sense puntuació, 0 punts' : `${SCORE_LABELS.get(score)}, ${score} punts`);
       const text = document.createElement('span');
       text.textContent = SCORE_LABELS.get(score);
       option.append(radio, text);
       options.append(option);
     }
-    group.append(options);
+    const row = document.createElement('div');
+    row.className = 'fila-bloc';
+    row.append(options, createAttemptsButtons(i));
+    group.append(row);
     container.append(group);
   }
 }
@@ -139,7 +180,8 @@ function readResult() {
     dorsal: dorsalInput.value.trim().toUpperCase(),
     anonimo: isAnonymous,
     nombre: isAnonymous ? 'Anònim' : nameInput.value.trim(),
-    genero: isAnonymous ? 'Altre' : selectedGender?.value || ''
+    genero: isAnonymous ? 'Altre' : selectedGender?.value || '',
+    intentos: []
   };
 
   let total = 0;
@@ -150,6 +192,11 @@ function readResult() {
       throw new Error('Selecciona una puntuació vàlida en cada bloc.');
     }
     result[`bloque${i}`] = score;
+    const attempts = data.get(`intentos${i}`);
+    if (attempts === null || !/^[0-4]$/.test(attempts)) {
+      throw new Error('Selecciona un nombre d’intents vàlid en cada bloc.');
+    }
+    result.intentos.push(Number(attempts));
     total += score;
   }
   result.total = total;
@@ -240,7 +287,13 @@ function showScoreSummary(result) {
     const title = document.createElement('dt');
     title.textContent = `Bloc ${i}`;
     const score = document.createElement('dd');
-    score.textContent = scoreSummary(result[`bloque${i}`]);
+    const points = document.createElement('span');
+    points.textContent = scoreSummary(result[`bloque${i}`]);
+    const attempts = document.createElement('span');
+    attempts.className = 'resum-intents';
+    const value = result.intentos[i - 1];
+    attempts.textContent = `${ATTEMPT_LABELS[value]} ${value === 1 ? 'intent' : 'intents'}`;
+    score.append(points, attempts);
     row.append(title, score);
     container.append(row);
   }
